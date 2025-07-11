@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BANCA DA LU 🐆</title>
+  <style>
+    body {
+      font-family: 'Verdana', sans-serif;
+      background: radial-gradient(#ffd700, #cc0000);
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 3em;
+      margin-bottom: 0.2em;
+    }
+    select, input, button {
+      font-size: 1.1em;
+      padding: 10px;
+      margin: 10px;
+      border-radius: 8px;
+      border: none;
+    }
+    #resultado, .history, .leaderboard {
+      background: #222;
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 12px;
+    }
+    .history ul, .leaderboard ul {
+      list-style: none;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>BANCA DA LU 🐅</h1>
+  <p>Simule sua sorte no Jogo do Bicho — Milhar, Centena e Dezena!</p>
+
+  <input type="text" id="jogador" placeholder="Seu nome ou apelido"><br>
+
+  <label for="numero">Número apostado (4 dígitos):</label>
+  <input type="number" id="numero" placeholder="Ex: 6589"><br>
+
+  <label><input type="checkbox" id="milhar" checked> Milhar</label>
+  <label><input type="checkbox" id="centena" checked> Centena</label>
+  <label><input type="checkbox" id="dezena" checked> Dezena</label><br>
+
+  <label for="posicao">Posição:</label>
+  <select id="posicao">
+    <option value="todas">Todas</option>
+    <option value="0">1º Prêmio</option>
+    <option value="1">2º Prêmio</option>
+    <option value="2">3º Prêmio</option>
+    <option value="3">4º Prêmio</option>
+    <option value="4">5º Prêmio</option>
+  </select><br>
+
+  <label for="valor">Valor da aposta (R$):</label>
+  <input type="number" id="valor" value="1"><br>
+
+  <button onclick="sortear()">Sortear!</button>
+
+  <div id="resultado"></div>
+
+  <div class="history">
+    <h3>Histórico de apostas</h3>
+    <ul id="historico"></ul>
+  </div>
+
+  <div class="leaderboard">
+    <h3>Leaderboard</h3>
+    <ul id="placar"></ul>
+  </div>
+
+  <script>
+    const resultadoDiv = document.getElementById('resultado');
+    const historicoUl = document.getElementById('historico');
+    const placarUl = document.getElementById('placar');
+    let leaderboard = JSON.parse(localStorage.getItem('banca_leaderboard') || '{}');
+
+    function atualizarPlacar() {
+      placarUl.innerHTML = '';
+      const ordenado = Object.entries(leaderboard).sort((a,b) => b[1].ganhos - a[1].ganhos);
+      ordenado.forEach(([nome, dados]) => {
+        const li = document.createElement('li');
+        li.textContent = `${nome} — R$ ${dados.ganhos.toFixed(2)} em ${dados.apostas} aposta(s)`;
+        placarUl.appendChild(li);
+      });
+    }
+
+    function sortear() {
+      const jogador = document.getElementById('jogador').value.trim() || 'Anônimo';
+      const numero = document.getElementById('numero').value.padStart(4, '0');
+      const milharAtiva = document.getElementById('milhar').checked;
+      const centenaAtiva = document.getElementById('centena').checked;
+      const dezenaAtiva = document.getElementById('dezena').checked;
+      const posicao = document.getElementById('posicao').value;
+      const valor = parseFloat(document.getElementById('valor').value);
+
+      if (!numero || isNaN(valor) || valor <= 0) {
+        alert('Preencha os dados corretamente.');
+        return;
+      }
+
+      let premios = [];
+      for (let i = 0; i < 5; i++) {
+        let sorteado = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        premios.push(sorteado);
+      }
+
+      let ganhos = 0;
+      let acertos = [];
+      const posicoes = posicao === 'todas' ? [0,1,2,3,4] : [parseInt(posicao)];
+
+      posicoes.forEach(i => {
+        const sorteado = premios[i];
+        if (milharAtiva && sorteado === numero) {
+          ganhos += valor * 4000;
+          acertos.push(`Milhar no ${i+1}º`);
+        }
+        if (centenaAtiva && sorteado.slice(1) === numero.slice(-3)) {
+          ganhos += valor * 600;
+          acertos.push(`Centena no ${i+1}º`);
+        }
+        if (dezenaAtiva && sorteado.slice(2) === numero.slice(-2)) {
+          ganhos += valor * 60;
+          acertos.push(`Dezena no ${i+1}º`);
+        }
+      });
+
+      resultadoDiv.innerHTML = `
+        <h2>Resultado do Sorteio 🎰</h2>
+        <p>Números sorteados:</p>
+        <h3>${premios.join(' - ')}</h3>
+        <p><strong>${jogador}</strong> apostou em ${numero}</p>
+        <p><strong>Acertos:</strong> ${acertos.length > 0 ? acertos.join(', ') : 'Nenhum'}</p>
+        <p><strong>Total ganho:</strong> R$ ${ganhos.toFixed(2)}</p>
+      `;
+
+      let li = document.createElement('li');
+      li.textContent = `${jogador} apostou em ${numero} e ganhou R$ ${ganhos.toFixed(2)}`;
+      historicoUl.prepend(li);
+
+      leaderboard[jogador] = leaderboard[jogador] || { apostas: 0, ganhos: 0 };
+      leaderboard[jogador].apostas++;
+      leaderboard[jogador].ganhos += ganhos;
+
+      localStorage.setItem('banca_leaderboard', JSON.stringify(leaderboard));
+      atualizarPlacar();
+    }
+
+    atualizarPlacar();
+  </script>
+</body>
+</html>
